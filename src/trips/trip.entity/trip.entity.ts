@@ -1,5 +1,11 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from "typeorm";
 import { TripStatus } from "../trip-status.enum";
+
+
+const decimalTransformer: ValueTransformer = {
+    to: (value: number) => value, // Armazena como número
+    from: (value: string) => parseFloat(value), // Converte string para número ao buscar
+};
 
 @Entity('trips')
 export class TripEntity {
@@ -22,7 +28,7 @@ export class TripEntity {
     dataFim: string | null;
 
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 }) // Para valores monetários
+    @Column({ type: 'decimal', precision: 10, scale: 2, transformer: decimalTransformer }) // Para valores monetários
     valor: number;
 
     @Column({ default: () => 'CURRENT_TIMESTAMP' })

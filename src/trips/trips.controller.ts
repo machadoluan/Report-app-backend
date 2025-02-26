@@ -10,7 +10,6 @@ export class TripsController {
 
     @Post()
     async createTrip(@Body() dadosTrip: tripDto) {
-        console.log('Dados recebidos no backend:', dadosTrip);
         return this.tripService.createTrip(dadosTrip)
     }
 
@@ -26,7 +25,13 @@ export class TripsController {
 
     @Delete('/:id')
     async deleteById(@Param('id') id: number) {
+
         return this.tripService.deleteById(id)
+    }
+
+    @Delete()
+    async deleteByIds(@Body('ids') ids: number[]) {
+        return this.tripService.deleteByIds(ids);
     }
 
     @Put()

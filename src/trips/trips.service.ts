@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TripEntity } from './trip.entity/trip.entity';
 import { privateDecrypt } from 'crypto';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { tripDto } from './trip.dto';
 import { TripStatus } from './trip-status.enum';
 
@@ -69,7 +69,6 @@ export class TripsService {
             t.dataInicio = this.formatDate(t.dataInicio);
             t.dataFim = this.formatDate(t.dataFim);
         });
-        console.log(trip)
         return trip
     }
 
@@ -88,16 +87,27 @@ export class TripsService {
 
     async deleteById(id: number) {
 
-
         const trip = await this.tripRepository.findOne({ where: { id } })
 
         if (!trip) {
             throw new BadRequestException(`Não consegui encontrar a viagem de id: ${id}!`);
         }
 
-        await this.tripRepository.delete(trip)
+        await this.tripRepository.delete(id)
 
         return { sucess: `Viagem ${id} deletada com sucesso!` }
+    }
+
+    async deleteByIds(ids: number[]) {
+        const trips = await this.tripRepository.findBy({ id: In(ids) });
+
+        if (trips.length === 0) {
+            throw new BadRequestException('Nenhuma viagem encontrada para os IDs fornecidos.');
+        }
+
+        await this.tripRepository.delete(ids);
+
+        return { success: `Viagens ${ids.join(', ')} deletadas com sucesso!` };
     }
 
     async updateTrip(dadosUpdate: tripDto) {
@@ -125,8 +135,25 @@ export class TripsService {
             dadosUpdate.status = TripStatus.COMPLETED;
 
             dadosUpdate.dataFim = dataFormatada;
+        } else {
+            dadosUpdate.dataFim = null
+            dadosUpdate.status = TripStatus.IN_PROGRESS;
+
         }
 
+        if (dadosUpdate.dataInicio) {
+            const [dia, mes, ano] = dadosUpdate.dataInicio.split('/');
+            const dataFormatada = `${ano}-${mes}-${dia}`;
+
+            const dataFim = new Date(dataFormatada);
+
+
+            if (isNaN(dataFim.getTime())) {
+                throw new BadRequestException('A dataFim fornecida é inválida!');
+            }
+
+            dadosUpdate.dataInicio = dataFormatada;
+        }
 
         await this.tripRepository.update({ id: dadosUpdate.id }, dadosUpdate);
 
