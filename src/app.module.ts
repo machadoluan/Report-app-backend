@@ -3,12 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthService } from './auth/auth.service';
 import { AuthModule } from './auth/auth.module';
-import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './auth/user.entity/user.entity';
 import { ProfileImageModule } from './profile-image/profile-image.module';
 import { TripsModule } from './trips/trips.module';
 import { TripEntity } from './trips/trip.entity/trip.entity';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -23,9 +23,9 @@ import { TripEntity } from './trips/trip.entity/trip.entity';
       autoLoadEntities: true,
     }),
     AuthModule, 
-    CloudinaryModule,
     ProfileImageModule,
-    TripsModule
+    TripsModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [AppService],
