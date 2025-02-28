@@ -9,6 +9,10 @@ import { ProfileImageModule } from './profile-image/profile-image.module';
 import { TripsModule } from './trips/trips.module';
 import { TripEntity } from './trips/trip.entity/trip.entity';
 import { ReportsModule } from './reports/reports.module';
+import { ReportEntity } from './reports/report.entity/report.entity';
+import { BackblazeService } from './backblaze/backblaze.service';
+import { FotoEntity } from './reports/foto.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -19,13 +23,17 @@ import { ReportsModule } from './reports/reports.module';
       username: 'root',
       password: '',
       database: 'reportApp',
-      entities: [UserEntity, TripEntity],
-      autoLoadEntities: true,
+      entities: [UserEntity, TripEntity, ReportEntity, FotoEntity],
+      // synchronize: true,
+      // dropSchema: true 
     }),
     AuthModule, 
     ProfileImageModule,
     TripsModule,
-    ReportsModule
+    ReportsModule,
+    ConfigModule.forRoot({
+      isGlobal: true
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
