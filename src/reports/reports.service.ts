@@ -46,6 +46,26 @@ export class ReportsService {
         return hora; // Se não atender nenhum caso, retorna como está
     }
 
+    private formatarTipoName(tipo) {
+        switch (tipo) {
+            case 'Inicio de Jornada':
+            case 'Fim de Jornada':
+                return 'Jornada';
+            case 'Inicio Refeição':
+            case 'Fim Refeição':
+                return 'Refeição';
+            case 'Inicio Pausa':
+            case 'Fim Pausa':
+                return 'Pausa';
+            case 'Inicio Espera':
+                return 'Espera'
+            case 'Reinicio de viagem':
+                return 'Reinicio';
+            default:
+                return tipo;
+        }
+    }
+
 
     async createReport(viagemId: number, dadoReport: ReportDto, files: Express.Multer.File[]) {
 
@@ -58,9 +78,9 @@ export class ReportsService {
             const [dia, mes, ano] = dadoReport.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
 
-            const dataFim = new Date(dataFormatada);
+            const data = new Date(dataFormatada);
 
-            if (isNaN(dataFim.getTime())) {
+            if (isNaN(data.getTime())) {
                 throw new BadRequestException('A data fornecida é inválida!');
             }
 
@@ -106,18 +126,26 @@ export class ReportsService {
         report.data = this.formatDate(report.data)
         report.hora = this.formatarHora(report.hora)
 
-        return { report }
+        const reportFormatado = {
+            ...report,
+            tipo_name: this.formatarTipoName(report.tipo)
+        }
+
+        return { reportFormatado }
     }
 
     async reportFindAll() {
         const reports = await this.reportRepository.find()
 
-        reports.forEach(t => {
-            t.data = this.formatDate(t.data)
-            t.hora = this.formatarHora(t.hora)
-        })
+        const reportsFormatados = reports.map(report => ({
+            ...report, // Mantém todas as propriedades originais
+            tipo_name: this.formatarTipoName(report.tipo), // Adiciona o campo tipo_name
+            data: this.formatDate(report.data), // Formata a data
+            hora: this.formatarHora(report.hora) // Formata a hora
+        }));
 
-        return { reports }
+        console.log(reports)
+        return { reportsFormatados }
     }
 
 
@@ -139,9 +167,8 @@ export class ReportsService {
 
     async deleteByIds(ids: number[]) {
 
-        if(!ids){
+        if (!ids) {
             throw new BadRequestException('Digite os ids para apagar!');
-
         }
 
         const reports = await this.reportRepository.findBy({ id: In(ids) });
@@ -155,6 +182,35 @@ export class ReportsService {
         return { success: `Viagens ${ids.join(', ')} deletadas com sucesso!` };
     }
 
+    async updateReport(dadosUpdate: ReportDto) {
 
+        if (!dadosUpdate.id) {
+            throw new BadRequestException('O campo id é obrigatorio')
+        }
+
+        const report = await this.reportRepository.findOne({ where: { id: dadosUpdate.id } })
+
+        if (!report) {
+            throw new BadRequestException(`Não consegui encontrar o registro de id: ${dadosUpdate.id}!`);
+        }
+
+        if (dadosUpdate.data) {
+            const [dia, mes, ano] = dadosUpdate.data.split('/');
+            const dataFormatada = `${ano}-${mes}-${dia}`;
+
+            const data = new Date(dataFormatada);
+
+            if (isNaN(data.getTime())) {
+                throw new BadRequestException('A data fornecida é inválida!');
+            }
+
+            dadosUpdate.data = dataFormatada;
+        }
+
+
+        await this.reportRepository.update({ id: dadosUpdate.id }, dadosUpdate);
+
+        return { success: 'Viagem alterado com sucesso!', report: dadosUpdate }
+    }
 
 }

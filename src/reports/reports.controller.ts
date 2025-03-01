@@ -1,7 +1,8 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportDto } from './report.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { tripDto } from 'src/trips/trip.dto';
 
 @Controller('reports')
 export class ReportsController {
@@ -64,5 +65,10 @@ export class ReportsController {
     @Delete()
     async deleteByIds(@Body('ids') ids: number[]) {
         return this.reportService.deleteByIds(ids);
+    }
+
+    @Put()
+    async updateTrip(@Body() dadosUpdate: any) {
+        return this.reportService.updateReport(dadosUpdate)
     }
 }
