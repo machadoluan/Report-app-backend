@@ -160,8 +160,8 @@ export class ReportsService {
                 tipo_name: this.formatarTipoName(report.tipo),
                 data: this.formatDate(report.data),
                 hora: this.formatarHora(report.hora),
-                foto:  fotos.filter(foto => foto.registroId === report.id)
-                .map(foto => foto.url)
+                foto: fotos.filter(foto => foto.registroId === report.id)
+                    .map(foto => foto.url)
             }
         });
 
