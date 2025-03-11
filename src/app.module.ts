@@ -16,18 +16,20 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Isso garante que as variáveis estarão disponíveis em toda a aplicação
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'reportApp',
-      entities: [UserEntity, TripEntity, ReportEntity, FotoEntity],
-      // synchronize: true,
-      // dropSchema: true 
+      host: process.env.DATABASE_HOST,
+      port: Number(process.env.DATABASE_PORT),
+      username: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
+      autoLoadEntities: true,
+      synchronize: false, // 
     }),
-    AuthModule, 
+    AuthModule,
     ProfileImageModule,
     TripsModule,
     ReportsModule,
@@ -38,4 +40,4 @@ import { ConfigModule } from '@nestjs/config';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
