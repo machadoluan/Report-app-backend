@@ -19,9 +19,9 @@ export class ReportsController {
         console.log(createReportDto)
         try {
             // Verifica se arquivos foram enviados
-            // if (!files || files.length === 0) {
-            //     throw new BadRequestException('Nenhum arquivo enviado.');
-            // }
+            if (!files || files.length === 0) {
+                throw new BadRequestException('Nenhum arquivo enviado.');
+            }
 
             // Chama o serviço para criar o relatório e fazer o upload das imagens
             const result = await this.reportService.createReport(
@@ -68,7 +68,7 @@ export class ReportsController {
     }
 
     @Put()
-    async updateTrip(@Body() dadosUpdate: any) {
+    async updateReport(@Body() dadosUpdate: any) {
         return this.reportService.updateReport(dadosUpdate)
     }
 }

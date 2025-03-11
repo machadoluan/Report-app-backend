@@ -26,7 +26,8 @@ export class ReportsService {
             return ""; // Retorna vazio quando a data for inválida
         }
 
-        return new Date(date).toLocaleDateString('pt-BR'); // Converte para formato BR
+        const dataUtc = new Date(date + "T00:00:00Z"); // Força UTC para evitar alteração de fuso
+        return dataUtc.toISOString().split("T")[0].split("-").reverse().join("/");
     }
 
     private formatarHora(hora: string): string {
@@ -68,16 +69,13 @@ export class ReportsService {
 
 
     async createReport(viagemId: number, dadoReport: ReportDto, files: Express.Multer.File[]) {
-
-        if (!dadoReport.data || !dadoReport.hora || !dadoReport.tipo) {
-            throw new BadRequestException('Preencha todos os campos obrigatórios!');
-
+        if (!dadoReport.data || !dadoReport.hora || !dadoReport.tipo || !files || files.length === 0) {
+            throw new BadRequestException('Preencha todos os campos obrigatórios e envie pelo menos uma foto!');
         }
 
         if (dadoReport.data) {
             const [dia, mes, ano] = dadoReport.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
-
             const data = new Date(dataFormatada);
 
             if (isNaN(data.getTime())) {
@@ -87,33 +85,46 @@ export class ReportsService {
             dadoReport.data = dataFormatada;
         }
 
-        const report = await this.tripRepository.findOne({ where: { id: viagemId } })
+        const trip = await this.tripRepository.findOne({ where: { id: viagemId } });
 
-        if (!report) {
+        if (!trip) {
             throw new NotFoundException(`Viagem com ID ${viagemId} não encontrada.`);
         }
 
-        const viagemName = `${report.origem} → ${report.destino}`
+        const viagemName = `${trip.origem} → ${trip.destino}`;
 
+        // 🔴 Tenta fazer o upload das fotos antes de salvar o relatório
+        let urls: string[] = [];
+        try {
+            for (const file of files) {
+                const url = await this.backblazeService.uploadFile(file);
+                urls.push(url);
+            }
+        } catch (error) {
+            throw new BadRequestException('Erro ao fazer upload da foto. Tente novamente.');
+        }
+
+        // 🔵 Agora salva o registro no banco, pois o upload foi bem-sucedido
         const reportFinal = this.reportRepository.create({
             ...dadoReport,
             viagem_id: viagemId,
             viagem_nome: viagemName
-        })
+        });
 
-        await this.reportRepository.save(reportFinal)
+        const saveReport = await this.reportRepository.save(reportFinal);
 
-        // for (const file of files) {
-        //     const url = await this.backblazeService.uploadFile(file);
-        //     const foto = this.fotoRepository.create({
-        //         registroId: report.id,
-        //         url
-        //     })
-        //     await this.fotoRepository.save(foto)
-        // }
+        // 🔵 Salva as fotos associadas ao registro
+        for (const url of urls) {
+            const foto = this.fotoRepository.create({
+                registroId: saveReport.id,
+                url
+            });
+            await this.fotoRepository.save(foto);
+        }
 
-        return { sucess: 'Registro cadastrado com sucesso!' }
+        return { success: 'Registro cadastrado com sucesso!' };
     }
+
 
 
     async reportById(id: number) {
@@ -122,13 +133,16 @@ export class ReportsService {
         }
 
         const report = await this.reportRepository.findOne({ where: { id } })
+        const foto = await this.fotoRepository.find()
 
         report.data = this.formatDate(report.data)
         report.hora = this.formatarHora(report.hora)
 
         const reportFormatado = {
             ...report,
-            tipo_name: this.formatarTipoName(report.tipo)
+            tipo_name: this.formatarTipoName(report.tipo),
+            foto: foto.filter(foto => foto.registroId === report.id)
+                .map(foto => foto.url)
         }
 
         return { reportFormatado }
@@ -136,13 +150,20 @@ export class ReportsService {
 
     async reportFindAll() {
         const reports = await this.reportRepository.find()
+        const fotos = await this.fotoRepository.find()
 
-        const reportsFormatados = reports.map(report => ({
-            ...report, // Mantém todas as propriedades originais
-            tipo_name: this.formatarTipoName(report.tipo), // Adiciona o campo tipo_name
-            data: this.formatDate(report.data), // Formata a data
-            hora: this.formatarHora(report.hora) // Formata a hora
-        }));
+        const reportsFormatados = reports.map(report => {
+            const foto = fotos.find(f => f.registroId === report.id);
+
+            return {
+                ...report,
+                tipo_name: this.formatarTipoName(report.tipo),
+                data: this.formatDate(report.data),
+                hora: this.formatarHora(report.hora),
+                foto:  fotos.filter(foto => foto.registroId === report.id)
+                .map(foto => foto.url)
+            }
+        });
 
         console.log(reports)
         return { reportsFormatados }
@@ -155,12 +176,14 @@ export class ReportsService {
         }
 
         const report = await this.reportRepository.findOne({ where: { id } })
+        const img = await this.fotoRepository.findOne({ where: { registroId: report.id } })
 
         if (!report) {
             throw new NotFoundException(`Viagem com ID ${id} não encontrada.`);
         }
 
         await this.reportRepository.delete(report)
+        await this.fotoRepository.delete(img)
 
         return { success: `Registro de ${report.tipo} deletado.` }
     }
@@ -172,6 +195,7 @@ export class ReportsService {
         }
 
         const reports = await this.reportRepository.findBy({ id: In(ids) });
+
 
         if (reports.length === 0) {
             throw new BadRequestException('Nenhuma viagem encontrada para os IDs fornecidos.');
@@ -210,7 +234,7 @@ export class ReportsService {
 
         await this.reportRepository.update({ id: dadosUpdate.id }, dadosUpdate);
 
-        return { success: 'Viagem alterado com sucesso!', report: dadosUpdate }
+        return { success: 'Viagem alterado com sucesso!' }
     }
 
 }

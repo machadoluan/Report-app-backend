@@ -18,13 +18,17 @@ export class BackblazeService {
         this.bucketName = this.configService.get<string>('B2_BUCKET_NAME');
         this.bucketId = this.configService.get<string>('B2_BUCKET_ID');
 
-        // Autenticar no Backblaze B2
-        this.b2.authorize()
-            .then(() => console.log('Autenticado no Backblaze B2'))
-            .catch((err) => {
-                console.error('Erro ao autenticar no Backblaze B2:', err);
-                throw new Error('Falha na autenticação com o Backblaze B2');
-            });
+        // Removemos a autenticação do construtor
+    }
+
+    async authenticate() {
+        try {
+            await this.b2.authorize();
+            console.log('Autenticado no Backblaze B2');
+        } catch (err) {
+            console.error('Erro ao autenticar no Backblaze B2:', err);
+            throw new Error('Falha na autenticação com o Backblaze B2');
+        }
     }
 
     async uploadFile(file: Express.Multer.File): Promise<string> {
@@ -36,29 +40,32 @@ export class BackblazeService {
         const fileName = `${Date.now()}-${path.basename(file.originalname)}`;
 
         try {
+            // Garantimos que está autenticado antes do upload
+            await this.authenticate();
+
+            const { uploadUrl, authorizationToken } = await this.getUploadData();
+
             // Faz o upload do arquivo
             const response = await this.b2.uploadFile({
-                uploadUrl: await this.getUploadUrl(),
-                uploadAuthToken: await this.getUploadAuthToken(),
-                fileName: fileName,
+                uploadUrl,
+                uploadAuthToken: authorizationToken,
+                fileName,
                 data: file.buffer,
             });
 
             // Retorna a URL pública do arquivo
-            return `https://f002.backblazeb2.com/file/${this.bucketName}/${fileName}`;
+            return `https://f003.backblazeb2.com/file/${this.bucketName}/${fileName}`;
         } catch (error) {
             console.error('Erro ao fazer upload do arquivo:', error);
             throw new BadRequestException('Falha ao fazer upload do arquivo.');
         }
     }
 
-    private async getUploadUrl(): Promise<string> {
+    private async getUploadData() {
         const response = await this.b2.getUploadUrl({ bucketId: this.bucketId });
-        return response.data.uploadUrl;
-    }
-
-    private async getUploadAuthToken(): Promise<string> {
-        const response = await this.b2.getUploadUrl({ bucketId: this.bucketId });
-        return response.data.authorizationToken;
+        return {
+            uploadUrl: response.data.uploadUrl,
+            authorizationToken: response.data.authorizationToken,
+        };
     }
 }

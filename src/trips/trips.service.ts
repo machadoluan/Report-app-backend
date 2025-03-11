@@ -20,7 +20,9 @@ export class TripsService {
             return ""; // Retorna vazio quando a data for inválida
         }
 
-        return new Date(date).toLocaleDateString('pt-BR'); // Converte para formato BR
+        const dataUtc = new Date(date + "T00:00:00Z"); // Força UTC para evitar alteração de fuso
+        return dataUtc.toISOString().split("T")[0].split("-").reverse().join("/");
+
     }
 
     async createTrip(dadosTrip: tripDto) {

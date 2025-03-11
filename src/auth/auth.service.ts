@@ -73,7 +73,7 @@ export class AuthService {
         }
 
 
-        if (!user || !user.password || !(await bcrypt.compare(dadosLogin.password, user.password))) { // Adicionada verificação para user.password
+        if (!user || !user.password || !(await bcrypt.compare(dadosLogin.password, user.password))) { 
             throw new BadRequestException('Credencias invalidas');
         }
 
