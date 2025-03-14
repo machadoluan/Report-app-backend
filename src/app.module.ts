@@ -12,22 +12,28 @@ import { ReportsModule } from './reports/reports.module';
 import { ReportEntity } from './reports/report.entity/report.entity';
 import { BackblazeService } from './backblaze/backblaze.service';
 import { FotoEntity } from './reports/foto.entity';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Isso garante que as variáveis estarão disponíveis em toda a aplicação
     }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: process.env.DATABASE_HOST,
-      port: Number(process.env.DATABASE_PORT),
-      username: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-      autoLoadEntities: true,
-      synchronize: false, // 
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DATABASE_HOST'),
+        port: configService.get<number>('DATABASE_PORT'),
+        username: configService.get<string>('DATABASE_USER'),
+        password: configService.get<string>('DATABASE_PASSWORD'),
+        database: configService.get<string>('DATABASE_NAME'),
+        entities: [UserEntity, ReportEntity, FotoEntity, TripEntity],
+        autoLoadEntities: true,
+        synchronize: true,
+        // dropSchema: true,
+      }),
+      inject: [ConfigService],
     }),
     AuthModule,
     ProfileImageModule,

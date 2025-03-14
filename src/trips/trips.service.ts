@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TripEntity } from './trip.entity/trip.entity';
 import { privateDecrypt } from 'crypto';
@@ -25,8 +25,8 @@ export class TripsService {
 
     }
 
-    async createTrip(dadosTrip: tripDto) {
-        if (!dadosTrip.cliente || !dadosTrip.origem || !dadosTrip.destino || !dadosTrip.dataInicio || !dadosTrip.valor) {
+    async createTrip(dadosTrip: tripDto, userId: string) {
+        if (!dadosTrip.cliente || !dadosTrip.origem || !dadosTrip.destino || !dadosTrip.dataInicio || !dadosTrip.valor || !userId) {
             throw new BadRequestException('Preencha todos os campos obrigatórios!');
         }
 
@@ -58,15 +58,24 @@ export class TripsService {
             dadosTrip.dataInicio = dataFormatada;
         }
 
-        const trip = this.tripRepository.create(dadosTrip);
+        const trip = this.tripRepository.create({
+            ...dadosTrip,
+            user: { id: userId }
+        });
         await this.tripRepository.save(trip);
 
         return { sucess: 'Viagem cadastrada com sucesso!' }
 
     }
 
-    async finAll() {
-        const trip = await this.tripRepository.find()
+    async findAll(userId: string) {
+        if (!userId) {
+            throw new BadRequestException('Preencha todos os campos obrigatórios!');
+        }
+        const trip = await this.tripRepository.find({
+            where: { user: { id: userId } }
+        })
+
         trip.forEach(t => {
             t.dataInicio = this.formatDate(t.dataInicio);
             t.dataFim = this.formatDate(t.dataFim);
@@ -74,11 +83,16 @@ export class TripsService {
         return trip
     }
 
-    async findById(id: number) {
-        const trip = await this.tripRepository.findOne({ where: { id } })
+    async findById(tripId: number, userId: string) {
+        if (!userId) {
+            throw new BadRequestException('Preencha todos os campos obrigatórios!');
+
+        }
+
+        const trip = await this.tripRepository.findOne({ where: { id: tripId, user: { id: userId } } })
 
         if (!trip) {
-            throw new BadRequestException(`Não consegui encontrar a viagem de id: ${id}!`);
+            throw new NotFoundException('Relatório não encontrado ou acesso negado');
         }
 
         trip.dataInicio = this.formatDate(trip.dataInicio)
@@ -87,79 +101,87 @@ export class TripsService {
         return trip
     }
 
-    async deleteById(id: number) {
-
-        const trip = await this.tripRepository.findOne({ where: { id } })
+    async deleteById(id: number, userId: string) {
+        const trip = await this.tripRepository.findOne({
+            where: { id, user: { id: userId } }
+        });
 
         if (!trip) {
-            throw new BadRequestException(`Não consegui encontrar a viagem de id: ${id}!`);
+            throw new BadRequestException('Viagem não encontrada ou acesso negado');
         }
 
-        await this.tripRepository.delete(id)
+        await this.tripRepository.delete(id);
 
-        return { sucess: `Viagem ${id} deletada com sucesso!` }
+        return { success: `Viagem ${id} deletada com sucesso!` };
     }
 
-    async deleteByIds(ids: number[]) {
-        const trips = await this.tripRepository.findBy({ id: In(ids) });
+
+    async deleteByIds(ids: number[], userId: string) {
+        const trips = await this.tripRepository.find({
+            where: { id: In(ids), user: { id: userId } }
+        });
 
         if (trips.length === 0) {
-            throw new BadRequestException('Nenhuma viagem encontrada para os IDs fornecidos.');
+            throw new BadRequestException('Nenhuma viagem encontrada para os IDs fornecidos ou acesso negado.');
         }
 
-        await this.tripRepository.delete(ids);
+        const userTripsIds = trips.map(trip => trip.id);
 
-        return { success: `Viagens ${ids.join(', ')} deletadas com sucesso!` };
+        await this.tripRepository.delete(userTripsIds);
+
+        return { success: `Viagens ${userTripsIds.join(', ')} deletadas com sucesso!` };
     }
 
-    async updateTrip(dadosUpdate: tripDto) {
 
+    async updateTrip(dadosUpdate: tripDto, userId: string) {
         if (!dadosUpdate.id) {
-            throw new BadRequestException('O campo id é obrigatorio')
+            throw new BadRequestException('O campo id é obrigatório');
         }
-
-        const trip = await this.tripRepository.findOne({ where: { id: dadosUpdate.id } })
-
+    
+        // Verifica se a viagem pertence ao usuário
+        const trip = await this.tripRepository.findOne({
+            where: { id: dadosUpdate.id, user: { id: userId } },
+        });
+    
         if (!trip) {
-            throw new BadRequestException(`Não consegui encontrar a viagem de id: ${dadosUpdate.id}!`);
+            throw new NotFoundException(`Viagem não encontrada ou acesso negado!`);
         }
-
+    
+        // Verifica e formata dataFim
         if (dadosUpdate.dataFim) {
             const [dia, mes, ano] = dadosUpdate.dataFim.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
-
             const dataFim = new Date(dataFormatada);
-
+    
             if (isNaN(dataFim.getTime())) {
                 throw new BadRequestException('A dataFim fornecida é inválida!');
             }
-
+    
             dadosUpdate.status = TripStatus.COMPLETED;
-
             dadosUpdate.dataFim = dataFormatada;
         } else {
-            dadosUpdate.dataFim = null
+            dadosUpdate.dataFim = null;
             dadosUpdate.status = TripStatus.IN_PROGRESS;
-
         }
-
+    
+        // Verifica e formata dataInicio
         if (dadosUpdate.dataInicio) {
             const [dia, mes, ano] = dadosUpdate.dataInicio.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
-
-            const dataFim = new Date(dataFormatada);
-
-
-            if (isNaN(dataFim.getTime())) {
-                throw new BadRequestException('A dataFim fornecida é inválida!');
+            const dataInicio = new Date(dataFormatada);
+    
+            if (isNaN(dataInicio.getTime())) {
+                throw new BadRequestException('A dataInicio fornecida é inválida!');
             }
-
+    
             dadosUpdate.dataInicio = dataFormatada;
         }
-
+    
+        // Atualiza a viagem
         await this.tripRepository.update({ id: dadosUpdate.id }, dadosUpdate);
-
-        return { success: 'Viagem alterado com sucesso!' }
+    
+        return { success: 'Viagem alterada com sucesso!' };
     }
+    
 
 }

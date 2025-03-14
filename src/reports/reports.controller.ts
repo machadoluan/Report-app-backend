@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query, Req, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportDto } from './report.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -13,10 +13,10 @@ export class ReportsController {
     @UseInterceptors(FilesInterceptor('files'))
     async create(
         @Param('viagemId') viagemId: number,
-        @Body() createReportDto: any, // Captura os campos de texto
+        @Body() createReport: any, // Captura os campos de texto
         @UploadedFiles() files: Array<Express.Multer.File>, // Captura os arquivos
     ) {
-        console.log(createReportDto)
+        const user = JSON.parse(createReport.user);
         try {
             // Verifica se arquivos foram enviados
             if (!files || files.length === 0) {
@@ -26,8 +26,9 @@ export class ReportsController {
             // Chama o serviço para criar o relatório e fazer o upload das imagens
             const result = await this.reportService.createReport(
                 viagemId,
-                createReportDto,
+                createReport,
                 files,
+                user.id
             );
 
             return result;
@@ -46,29 +47,42 @@ export class ReportsController {
 
 
     @Get(':id')
-    async reportById(@Param('id') id: number
+    async reportById(
+        @Param('id') id: number,
+        @Query('userId') userId: string
     ) {
-        return this.reportService.reportById(id)
+        return this.reportService.reportById(id, userId);
     }
 
     @Get()
-    async reportFindAll() {
-        return this.reportService.reportFindAll()
+    async reportFindAll(
+        @Query('userId') userId: string
+    ) {
+        return this.reportService.reportFindAll(userId);
     }
 
 
-    @Delete(':id')
-    async deleteById(@Param('id') id: number) {
-        return this.reportService.deleteById(id)
+    @Delete('/:id')
+    async deleteById(
+        @Param('id') id: number,
+        @Query('userId') userId: string
+    ) {
+        return this.reportService.deleteById(id, userId);
     }
 
     @Delete()
-    async deleteByIds(@Body('ids') ids: number[]) {
-        return this.reportService.deleteByIds(ids);
+    async deleteByIds(
+        @Body('ids') ids: number[],
+        @Query('userId') userId: string
+    ) {
+        return this.reportService.deleteByIds(ids, userId);
     }
 
     @Put()
-    async updateReport(@Body() dadosUpdate: any) {
-        return this.reportService.updateReport(dadosUpdate)
+    async updateReport(
+        @Body() dadosUpdate: ReportDto,
+        @Body('userId') userId: string,
+    ) {
+        return this.reportService.updateReport(dadosUpdate, userId);
     }
 }

@@ -1,5 +1,6 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { FotoEntity } from "../foto.entity";
+import { UserEntity } from "src/auth/user.entity/user.entity";
 
 
 @Entity('reports')
@@ -33,4 +34,9 @@ export class ReportEntity {
 
     @OneToMany(() => FotoEntity, (foto) => foto.report)
     fotos: FotoEntity[];
+
+
+    @ManyToOne(() => UserEntity, user => user.reports)
+    @JoinColumn({ name: 'user_id' })
+    user: UserEntity;
 }

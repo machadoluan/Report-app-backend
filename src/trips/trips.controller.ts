@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { tripDto } from './trip.dto';
 import { TripsService } from './trips.service';
 
@@ -9,33 +9,48 @@ export class TripsController {
     ) { }
 
     @Post()
-    async createTrip(@Body() dadosTrip: tripDto) {
-        return this.tripService.createTrip(dadosTrip)
+    async createTrip(@Body() dadosTrip: any) {
+        const user = JSON.parse(dadosTrip.user);
+        console.log("user", user.id)
+
+        return this.tripService.createTrip(dadosTrip, user.id)
     }
 
     @Get()
-    async findAll() {
-        return this.tripService.finAll()
+    async findAll(
+        @Query('userId') userId: string
+    ) {
+        return this.tripService.findAll(userId);
     }
-
+    
     @Get('/:id')
-    async findById(@Param('id') id: number) {
-        return this.tripService.findById(id)
+    async findById(
+        @Param('id') id: number,
+        @Query('userId') userId: string
+    ) {
+        return this.tripService.findById(id, userId);
     }
-
+    
     @Delete('/:id')
-    async deleteById(@Param('id') id: number) {
-
-        return this.tripService.deleteById(id)
+    async deleteById(
+        @Param('id') id: number,
+        @Query('userId') userId: string // Mudei pra Query pra ficar igual aos outros
+    ) {
+        return this.tripService.deleteById(id, userId);
     }
-
+    
     @Delete()
-    async deleteByIds(@Body('ids') ids: number[]) {
-        return this.tripService.deleteByIds(ids);
+    async deleteByIds(
+        @Body() { ids, userId }: { ids: number[], userId: string } // Pegando tudo junto em um objeto
+    ) {
+        return this.tripService.deleteByIds(ids, userId);
     }
 
     @Put()
-    async updateTrip(@Body() dadosUpdate: tripDto) {
-        return this.tripService.updateTrip(dadosUpdate)
+    async updateTrip(
+        @Body() dadosUpdate: tripDto,
+        @Body('userId') userId: string,
+    ) {
+        return this.tripService.updateTrip(dadosUpdate, userId);
     }
 }

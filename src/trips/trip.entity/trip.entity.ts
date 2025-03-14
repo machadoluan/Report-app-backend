@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, ValueTransformer } from "typeorm";
 import { TripStatus } from "../trip-status.enum";
+import { UserEntity } from "src/auth/user.entity/user.entity";
 
 
 const decimalTransformer: ValueTransformer = {
@@ -42,4 +43,8 @@ export class TripEntity {
 
     @Column()
     descricao: string;
+
+    @ManyToOne(() => UserEntity, user => user.trips)
+    @JoinColumn({ name: 'user_id' })
+    user: UserEntity;
 }

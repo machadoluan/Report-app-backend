@@ -68,7 +68,7 @@ export class ReportsService {
     }
 
 
-    async createReport(viagemId: number, dadoReport: ReportDto, files: Express.Multer.File[]) {
+    async createReport(viagemId: number, dadoReport: ReportDto, files: Express.Multer.File[], userId: string) {
         if (!dadoReport.data || !dadoReport.hora || !dadoReport.tipo || !files || files.length === 0) {
             throw new BadRequestException('Preencha todos os campos obrigatórios e envie pelo menos uma foto!');
         }
@@ -108,7 +108,8 @@ export class ReportsService {
         const reportFinal = this.reportRepository.create({
             ...dadoReport,
             viagem_id: viagemId,
-            viagem_nome: viagemName
+            viagem_nome: viagemName,
+            user: { id: userId }
         });
 
         const saveReport = await this.reportRepository.save(reportFinal);
@@ -127,13 +128,17 @@ export class ReportsService {
 
 
 
-    async reportById(id: number) {
-        if (!id) {
+    async reportById(reportId: number, userId: any) {
+        if (!reportId || !userId) {
             throw new BadRequestException('Preencha todos os campos obrigatórios!');
         }
 
-        const report = await this.reportRepository.findOne({ where: { id } })
+        const report = await this.reportRepository.findOne({ where: { id: reportId, user: { id: userId } } })
         const foto = await this.fotoRepository.find()
+
+        if (!report) {
+            throw new NotFoundException('Relatório não encontrado ou acesso negado');
+        }
 
         report.data = this.formatDate(report.data)
         report.hora = this.formatarHora(report.hora)
@@ -148,80 +153,98 @@ export class ReportsService {
         return { reportFormatado }
     }
 
-    async reportFindAll() {
-        const reports = await this.reportRepository.find()
-        const fotos = await this.fotoRepository.find()
-
-        const reportsFormatados = reports.map(report => {
-            const foto = fotos.find(f => f.registroId === report.id);
-
-            return {
-                ...report,
-                tipo_name: this.formatarTipoName(report.tipo),
-                data: this.formatDate(report.data),
-                hora: this.formatarHora(report.hora),
-                foto: fotos.filter(foto => foto.registroId === report.id)
-                    .map(foto => foto.url)
-            }
+    async reportFindAll(userId: string) {
+        if (!userId) {
+            throw new BadRequestException('Preencha todos os campos obrigatórios!');
+        }
+        // Busca todos os relatórios do usuário
+        const reports = await this.reportRepository.find({
+            where: { user: { id: userId } }
         });
 
-        console.log(reports)
-        return { reportsFormatados }
+        const fotos = await this.fotoRepository.find();
+
+        // Se não encontrar nada, lança o erro
+
+
+        // Formata os relatórios e vincula as fotos certas
+        const reportsFormatados = reports.map(report => ({
+            ...report,
+            tipo_name: this.formatarTipoName(report.tipo),
+            data: this.formatDate(report.data),
+            hora: this.formatarHora(report.hora),
+            foto: fotos
+                .filter(foto => foto.registroId === report.id)
+                .map(foto => foto.url)
+        }));
+
+        console.log(reportsFormatados);
+        return { reportsFormatados };
     }
 
 
-    async deleteById(id: number) {
+
+    async deleteById(id: number, userId: string) {
         if (!id) {
             throw new BadRequestException('Preencha todos os campos obrigatórios!');
         }
 
-        const report = await this.reportRepository.findOne({ where: { id } })
-        const img = await this.fotoRepository.findOne({ where: { registroId: report.id } })
+        const report = await this.reportRepository.findOne({
+            where: { id, user: { id: userId } },
+        });
 
         if (!report) {
-            throw new NotFoundException(`Viagem com ID ${id} não encontrada.`);
+            throw new NotFoundException('Relatório não encontrado ou acesso negado!');
         }
 
-        await this.reportRepository.delete(report)
-        await this.fotoRepository.delete(img)
+        const img = await this.fotoRepository.findOne({
+            where: { registroId: report.id },
+        });
 
-        return { success: `Registro de ${report.tipo} deletado.` }
+        if (img) await this.fotoRepository.delete(img);
+
+        await this.reportRepository.delete(report);
+
+        return { success: `Registro de ${report.tipo} deletado.` };
     }
 
-    async deleteByIds(ids: number[]) {
-
-        if (!ids) {
-            throw new BadRequestException('Digite os ids para apagar!');
+    async deleteByIds(ids: number[], userId: string) {
+        if (!ids || ids.length === 0) {
+            throw new BadRequestException('Digite os IDs para apagar!');
         }
 
-        const reports = await this.reportRepository.findBy({ id: In(ids) });
-
+        const reports = await this.reportRepository.find({
+            where: { id: In(ids), user: { id: userId } },
+        });
 
         if (reports.length === 0) {
-            throw new BadRequestException('Nenhuma viagem encontrada para os IDs fornecidos.');
+            throw new BadRequestException('Nenhum relatório encontrado ou acesso negado!');
         }
 
-        await this.reportRepository.delete(ids);
+        const reportIds = reports.map((report) => report.id);
 
-        return { success: `Viagens ${ids.join(', ')} deletadas com sucesso!` };
+        await this.reportRepository.delete(reportIds);
+
+        return { success: `Relatórios ${reportIds.join(', ')} deletados com sucesso!` };
     }
 
-    async updateReport(dadosUpdate: ReportDto) {
-
+    async updateReport(dadosUpdate: ReportDto, userId: string) {
         if (!dadosUpdate.id) {
-            throw new BadRequestException('O campo id é obrigatorio')
+            throw new BadRequestException('O campo ID é obrigatório');
         }
 
-        const report = await this.reportRepository.findOne({ where: { id: dadosUpdate.id } })
+        const report = await this.reportRepository.findOne({
+            where: { id: dadosUpdate.id, user: { id: userId } },
+        });
 
         if (!report) {
-            throw new BadRequestException(`Não consegui encontrar o registro de id: ${dadosUpdate.id}!`);
+            throw new BadRequestException('Relatório não encontrado ou acesso negado!');
         }
 
+        // Verificação de data
         if (dadosUpdate.data) {
             const [dia, mes, ano] = dadosUpdate.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
-
             const data = new Date(dataFormatada);
 
             if (isNaN(data.getTime())) {
@@ -231,10 +254,9 @@ export class ReportsService {
             dadosUpdate.data = dataFormatada;
         }
 
-
         await this.reportRepository.update({ id: dadosUpdate.id }, dadosUpdate);
 
-        return { success: 'Viagem alterado com sucesso!' }
+        return { success: 'Relatório atualizado com sucesso!' };
     }
 
 }
