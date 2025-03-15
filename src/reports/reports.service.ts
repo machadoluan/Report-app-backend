@@ -6,6 +6,7 @@ import { ReportDto } from './report.dto';
 import { TripEntity } from 'src/trips/trip.entity/trip.entity';
 import { BackblazeService } from 'src/backblaze/backblaze.service';
 import { FotoEntity } from './foto.entity';
+import { UserEntity } from 'src/auth/user.entity/user.entity';
 
 @Injectable()
 export class ReportsService {
@@ -15,6 +16,8 @@ export class ReportsService {
         private readonly reportRepository: Repository<ReportEntity>,
         @InjectRepository(TripEntity)
         private readonly tripRepository: Repository<TripEntity>,
+        @InjectRepository(UserEntity)
+        private readonly userRepository: Repository<UserEntity>,
         @InjectRepository(FotoEntity)
         private readonly fotoRepository: Repository<FotoEntity>,
         private readonly backblazeService: BackblazeService,
@@ -73,6 +76,7 @@ export class ReportsService {
             throw new BadRequestException('Preencha todos os campos obrigatórios e envie pelo menos uma foto!');
         }
 
+
         if (dadoReport.data) {
             const [dia, mes, ano] = dadoReport.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
@@ -87,6 +91,8 @@ export class ReportsService {
 
         const trip = await this.tripRepository.findOne({ where: { id: viagemId } });
 
+        const user = await this.userRepository.findOne({ where: { id: userId } })
+
         if (!trip) {
             throw new NotFoundException(`Viagem com ID ${viagemId} não encontrada.`);
         }
@@ -97,7 +103,7 @@ export class ReportsService {
         let urls: string[] = [];
         try {
             for (const file of files) {
-                const url = await this.backblazeService.uploadFile(file);
+                const url = await this.backblazeService.uploadFile(file, userId, user.username, trip.id, viagemName);
                 urls.push(url);
             }
         } catch (error) {
@@ -184,13 +190,13 @@ export class ReportsService {
 
 
 
-    async deleteById(id: number, userId: string) {
-        if (!id) {
+    async deleteById(reportId: number, userId: string) {
+        if (!reportId) {
             throw new BadRequestException('Preencha todos os campos obrigatórios!');
         }
 
         const report = await this.reportRepository.findOne({
-            where: { id, user: { id: userId } },
+            where: { id: reportId, user: { id: userId } },
         });
 
         if (!report) {
@@ -201,24 +207,37 @@ export class ReportsService {
             where: { registroId: report.id },
         });
 
-        if (img) await this.fotoRepository.delete(img);
+        if (img) {
+            await this.deleteReportPhoto(img.url);
+            await this.fotoRepository.delete(img);
+        }
 
         await this.reportRepository.delete(report);
 
         return { success: `Registro de ${report.tipo} deletado.` };
     }
 
-    async deleteByIds(ids: number[], userId: string) {
-        if (!ids || ids.length === 0) {
+    async deleteByIds(reportids: number[], userId: string) {
+        if (!reportids || reportids.length === 0) {
             throw new BadRequestException('Digite os IDs para apagar!');
         }
 
         const reports = await this.reportRepository.find({
-            where: { id: In(ids), user: { id: userId } },
+            where: { id: In(reportids), user: { id: userId } },
         });
 
         if (reports.length === 0) {
             throw new BadRequestException('Nenhum relatório encontrado ou acesso negado!');
+        }
+        for (const report of reports) {
+            const img = await this.fotoRepository.findOne({
+                where: { registroId: report.id },
+            });
+
+            if (img) {
+                await this.deleteReportPhoto(img.url);
+                await this.fotoRepository.delete(img);
+            }
         }
 
         const reportIds = reports.map((report) => report.id);
@@ -257,6 +276,14 @@ export class ReportsService {
         await this.reportRepository.update({ id: dadosUpdate.id }, dadosUpdate);
 
         return { success: 'Relatório atualizado com sucesso!' };
+    }
+
+    async deleteReportPhoto(fileName: string): Promise<void> {
+        try {
+            await this.backblazeService.deleteFileByUrl(fileName);
+        } catch (error) {
+            throw new BadRequestException('Erro ao deletar a foto associada.');
+        }
     }
 
 }
