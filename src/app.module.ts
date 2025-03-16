@@ -13,12 +13,41 @@ import { ReportEntity } from './reports/report.entity/report.entity';
 import { BackblazeService } from './backblaze/backblaze.service';
 import { FotoEntity } from './reports/foto.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { join } from 'path';
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Isso garante que as variáveis estarão disponíveis em toda a aplicação
+      isGlobal: true,
     }),
+
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: 'smtp.gmail.com',
+          secure: true,
+          auth: {
+            user: configService.get<string>('EMAIL'),
+            pass: configService.get<string>('EMAIL_PASSWORD'),
+          },
+        },
+        defaults: { from: '"Equipe Suporte" <suporte@example.com>' },
+        template: {
+          dir: join(__dirname, 'mails'), // ⬅️ Caminho correto para os templates
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+      inject: [ConfigService], // Adicionei a injeção aqui também!
+    }),
+
+    // Configura o TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -31,17 +60,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         entities: [UserEntity, ReportEntity, FotoEntity, TripEntity],
         autoLoadEntities: true,
         synchronize: true,
-        // dropSchema: true,
       }),
       inject: [ConfigService],
     }),
+
+    // Seus outros módulos
     AuthModule,
     ProfileImageModule,
     TripsModule,
     ReportsModule,
-    ConfigModule.forRoot({
-      isGlobal: true
-    }),
   ],
   controllers: [AppController],
   providers: [AppService],
