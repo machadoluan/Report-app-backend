@@ -6,8 +6,9 @@ export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
     @Post('register')
-    async register(@Body('name') name: string, @Body('email') email: string, @Body('username') username: string, @Body('password') password: string) {
-        return this.authService.register(name, username, email, password)
+    async register(@Body() dadosRegister: any) {
+        console.log(dadosRegister)
+        return this.authService.register(dadosRegister)
     }
 
     @Post('login')

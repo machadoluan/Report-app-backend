@@ -26,25 +26,42 @@ export class AuthService {
             photo: user.profileImage
         }
     }
+    async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+        let baseUsername = `${firstName}${lastName}`.toLowerCase().replace(/\s+/g, '');
+        let username = baseUsername;
+        let count = 1;
 
-    async register(name: string, username: string, email: string, password: string): Promise<{ accessToken: string }> {
+        // Verifica se o username já existe no banco
+        while (await this.userRepository.findOne({ where: { username } })) {
+            username = `${baseUsername}${count}`;
+            count++;
+        }
+
+        return username;
+    }
+
+
+    async register(dadosRegister: any): Promise<{ accessToken: string }> {
         try {
-            if (!name || !username || !email || !password) {
+            if (!dadosRegister.firstName || !dadosRegister.lastName || !dadosRegister.email || !dadosRegister.password) {
                 throw new BadRequestException('Preencha todos os campos!');
             }
 
-            const existingUser = await this.userRepository.findOne({ where: { email, username } });
+            const existingUser = await this.userRepository.findOne({ where: { email: dadosRegister.email } });
+
             if (existingUser) {
                 throw new UnauthorizedException('Usuário ja existe!');
             }
-
-            const hashedPassword = await bcrypt.hash(password, 10)
+            const name = `${dadosRegister.firstName} ${dadosRegister.lastName}`
+            const hashedPassword = await bcrypt.hash(dadosRegister.password, 10)
             const gerarImage = await this.profileImageService.generateProfileImage(name)
 
+            const username = await this.generateUniqueUsername(dadosRegister.firstName, dadosRegister.lastName);
+
             const user = this.userRepository.create({
-                name,
-                username,
-                email,
+                name: name,
+                email: dadosRegister.email,
+                username: username,
                 password: hashedPassword,
                 profileImage: gerarImage
             });
@@ -90,7 +107,7 @@ export class AuthService {
 
         if (!user) throw new BadRequestException('Usuário não encontrado.');
 
-        const resetToken = this.jwtService.sign({id: user.id}, {expiresIn: '15min'});
+        const resetToken = this.jwtService.sign({ id: user.id }, { expiresIn: '15min' });
 
         const resetLink = `http://localhost:4200/reset-password?token=${resetToken}`;
 
@@ -102,29 +119,29 @@ export class AuthService {
             context: { name: user.name, resetLink }
         })
 
-        return {message: 'Email enviado com sucesso!'}
+        return { message: 'Email enviado com sucesso!' }
     }
 
 
-    async resetPassword(token: string, newPassword: string){
+    async resetPassword(token: string, newPassword: string) {
         try {
             const payload = this.jwtService.verify(token);
-            const user = await this.userRepository.findOne({where: {id: payload.id}});
+            const user = await this.userRepository.findOne({ where: { id: payload.id } });
 
-            if(!user) throw new BadRequestException('Usúario não encontrado');
+            if (!user) throw new BadRequestException('Usúario não encontrado');
 
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             user.password = hashedPassword;
 
             await this.userRepository.save(user)
 
-            return {message: 'Senha redefinida com sucesso!'}
+            return { message: 'Senha redefinida com sucesso!' }
         } catch (error) {
             throw new BadRequestException('Token invalida ou expirado.')
         }
-    } 
+    }
 
-    async verifyToken(token: string){
+    async verifyToken(token: string) {
         try {
             const payload = this.jwtService.verify(token);
         } catch (error) {
