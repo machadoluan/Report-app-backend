@@ -43,40 +43,62 @@ export class AuthService {
 
     async register(dadosRegister: any): Promise<{ accessToken: string }> {
         try {
+            // ✅ Validação básica
             if (!dadosRegister.firstName || !dadosRegister.lastName || !dadosRegister.email || !dadosRegister.password) {
                 throw new BadRequestException('Preencha todos os campos!');
             }
-
+    
+            // 🛑 Verificar se o email já existe
             const existingUser = await this.userRepository.findOne({ where: { email: dadosRegister.email } });
-
             if (existingUser) {
-                throw new UnauthorizedException('Usuário ja existe!');
+                throw new UnauthorizedException('Usuário já existe!');
             }
-            const name = `${dadosRegister.firstName} ${dadosRegister.lastName}`
-            const hashedPassword = await bcrypt.hash(dadosRegister.password, 10)
-            const gerarImage = await this.profileImageService.generateProfileImage(name)
-
-            const username = await this.generateUniqueUsername(dadosRegister.firstName, dadosRegister.lastName);
-
+    
+            // 🧼 Limpeza dos dados
+            const firstName = dadosRegister.firstName.trim();
+            const lastName = dadosRegister.lastName.trim();
+            const email = dadosRegister.email.trim();
+            const password = dadosRegister.password.trim();
+            const fullName = `${firstName} ${lastName}`;
+    
+            // 🔒 Criptografando a senha
+            const hashedPassword = await bcrypt.hash(password, 10);
+    
+            // 🖼️ Gerar imagem do perfil (proteção contra erro)
+            let gerarImage;
+            try {
+                gerarImage = await this.profileImageService.generateProfileImage(fullName);
+            } catch (error) {
+                console.warn('Erro ao gerar imagem de perfil:', error);
+                gerarImage = 'default-profile.png'; // imagem padrão em caso de falha
+            }
+    
+            // 🎯 Criar username único
+            const username = await this.generateUniqueUsername(firstName, lastName);
+    
+            // 🧩 Criar usuário
             const user = this.userRepository.create({
-                name: name,
-                email: dadosRegister.email,
-                username: username,
+                name: fullName,
+                email,
+                username,
                 password: hashedPassword,
-                profileImage: gerarImage
+                profileImage: gerarImage,
             });
-
-            await this.userRepository.save(user)
-
+    
+            // 💾 Salvar no banco
+            await this.userRepository.save(user);
+    
+            // 🔥 Gerar o token JWT
             const payload = this.creatPayload(user);
-            const accessToken = this.jwtService.sign(payload)
-
-            return { accessToken }
+            const accessToken = this.jwtService.sign(payload);
+    
+            return { accessToken };
         } catch (error) {
             console.error('Erro durante o registro:', error);
-            throw new InternalServerErrorException('Failed to register user');
+            throw new InternalServerErrorException('Falha ao registrar o usuário');
         }
     }
+    
 
 
     async login(dadosLogin: any): Promise<{ accessToken: string }> {
