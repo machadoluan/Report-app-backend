@@ -138,6 +138,10 @@ export class TripsService {
             throw new BadRequestException('O campo id é obrigatório');
         }
     
+        if (!userId) {
+            throw new BadRequestException('usuario é necessario');
+        }
+    
         // Verifica se a viagem pertence ao usuário
         const trip = await this.tripRepository.findOne({
             where: { id: dadosUpdate.id, user: { id: userId } },

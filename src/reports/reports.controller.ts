@@ -80,9 +80,12 @@ export class ReportsController {
 
     @Put()
     async updateReport(
-        @Body() dadosUpdate: ReportDto,
+        @Body('updateData') dadosUpdate: ReportDto,
         @Body('userId') userId: string,
     ) {
+        console.log(dadosUpdate);
+        console.log(userId);
         return this.reportService.updateReport(dadosUpdate, userId);
     }
+
 }

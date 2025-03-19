@@ -22,5 +22,8 @@ export class ReportDto {
 
     @IsNotEmpty()
     viagem_nome: string;
+    
+    @IsNotEmpty()
+    userId: string;
 
 }

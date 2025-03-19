@@ -48,9 +48,11 @@ export class TripsController {
 
     @Put()
     async updateTrip(
-        @Body() dadosUpdate: tripDto,
+        @Body("updateData") dadosUpdate: tripDto,
         @Body('userId') userId: string,
     ) {
+        console.log("userId", userId)
+        console.log("dadosUpdate", dadosUpdate)
         return this.tripService.updateTrip(dadosUpdate, userId);
     }
 }

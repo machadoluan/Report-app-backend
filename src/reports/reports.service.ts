@@ -253,12 +253,13 @@ export class ReportsService {
         }
 
         const report = await this.reportRepository.findOne({
-            where: { id: dadosUpdate.id, user: { id: userId } },
+            where: { id: dadosUpdate.id, user: { id: userId } }, // verifica se o relatório pertence ao usuário
         });
 
         if (!report) {
             throw new BadRequestException('Relatório não encontrado ou acesso negado!');
         }
+
 
         // Verificação de data
         if (dadosUpdate.data) {
