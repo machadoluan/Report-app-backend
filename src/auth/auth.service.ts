@@ -47,23 +47,23 @@ export class AuthService {
             if (!dadosRegister.firstName || !dadosRegister.lastName || !dadosRegister.email || !dadosRegister.password) {
                 throw new BadRequestException('Preencha todos os campos!');
             }
-    
+
             // 🛑 Verificar se o email já existe
             const existingUser = await this.userRepository.findOne({ where: { email: dadosRegister.email } });
             if (existingUser) {
-                throw new UnauthorizedException('Usuário já existe!');
+                throw new BadRequestException('Usuário já existe!');
             }
-    
+
             // 🧼 Limpeza dos dados
             const firstName = dadosRegister.firstName.trim();
             const lastName = dadosRegister.lastName.trim();
             const email = dadosRegister.email.trim();
             const password = dadosRegister.password.trim();
             const fullName = `${firstName} ${lastName}`;
-    
+
             // 🔒 Criptografando a senha
             const hashedPassword = await bcrypt.hash(password, 10);
-    
+
             // 🖼️ Gerar imagem do perfil (proteção contra erro)
             let gerarImage;
             try {
@@ -72,10 +72,10 @@ export class AuthService {
                 console.warn('Erro ao gerar imagem de perfil:', error);
                 gerarImage = 'default-profile.png'; // imagem padrão em caso de falha
             }
-    
+
             // 🎯 Criar username único
             const username = await this.generateUniqueUsername(firstName, lastName);
-    
+
             // 🧩 Criar usuário
             const user = this.userRepository.create({
                 name: fullName,
@@ -84,21 +84,24 @@ export class AuthService {
                 password: hashedPassword,
                 profileImage: gerarImage,
             });
-    
+
             // 💾 Salvar no banco
             await this.userRepository.save(user);
-    
+
             // 🔥 Gerar o token JWT
             const payload = this.creatPayload(user);
             const accessToken = this.jwtService.sign(payload);
-    
+
             return { accessToken };
         } catch (error) {
             console.error('Erro durante o registro:', error);
+            if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+                throw error; // Repassa o erro original pro frontend
+            }
             throw new InternalServerErrorException('Falha ao registrar o usuário');
         }
     }
-    
+
 
 
     async login(dadosLogin: any): Promise<{ accessToken: string }> {

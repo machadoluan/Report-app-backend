@@ -37,17 +37,16 @@ import { join } from 'path';
         },
         defaults: { from: '"Equipe Suporte" <suporte@example.com>' },
         template: {
-          dir: join(__dirname, 'mails'), // ⬅️ Caminho correto para os templates
+          dir: join(__dirname, 'mails'), 
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
           },
         },
       }),
-      inject: [ConfigService], // Adicionei a injeção aqui também!
+      inject: [ConfigService], 
     }),
 
-    // Configura o TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -64,7 +63,6 @@ import { join } from 'path';
       inject: [ConfigService],
     }),
 
-    // Seus outros módulos
     AuthModule,
     ProfileImageModule,
     TripsModule,
