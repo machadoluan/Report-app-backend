@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as B2 from 'backblaze-b2';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class BackblazeService {
@@ -19,6 +20,19 @@ export class BackblazeService {
         this.bucketId = this.configService.get<string>('B2_BUCKET_ID');
     }
 
+    private sanitizeFileName(filename: string): string {
+        // Substitui espaços por hífens
+        let sanitized = filename.replace(/\s+/g, '-');
+
+        // Remove caracteres especiais (exceto hífens, pontos e underscores)
+        sanitized = sanitized.replace(/[^a-zA-Z0-9\-._]/g, '');
+
+        // Converte para minúsculas (opcional)
+        sanitized = sanitized.toLowerCase();
+
+        return sanitized;
+    }
+
     async authenticate() {
         try {
             await this.b2.authorize();
@@ -33,11 +47,21 @@ export class BackblazeService {
         if (!file) {
             throw new BadRequestException('Nenhum arquivo enviado.');
         }
-
+        const sanitizedOriginalName = this.sanitizeFileName(file.originalname);
+        const sanitizedTripName = this.sanitizeFileName(tripName);
         // Define o caminho do arquivo no formato userId/tripId/nomeDoArquivo
-        const fileName = `${userId} - ${name}/${tripId} - ${tripName}/${Date.now()}-${path.basename(file.originalname)}`;
+        const fileName = `${userId}-${name}/${tripId}-${sanitizedTripName}/${Date.now()}-${path.basename(sanitizedOriginalName)}`;
 
         try {
+
+            console.log('Tamanho do buffer original:', file.buffer.length);
+            const compressedImageBuffer = await sharp(file.buffer)
+                .resize(800) // Redimensiona para 800px de largura
+                .jpeg({ quality: 60 }) // Converte para WebP com 60% de qualidade
+                .withMetadata({}) // Remove metadados
+                .toBuffer();
+            console.log('Tamanho do buffer comprimido:', compressedImageBuffer.length);
+
             // Garantimos que está autenticado antes do upload
             await this.authenticate();
 
@@ -48,7 +72,7 @@ export class BackblazeService {
                 uploadUrl,
                 uploadAuthToken: authorizationToken,
                 fileName,
-                data: file.buffer,
+                data: compressedImageBuffer,
             });
             // Retorna a URL pública do arquivo
             return `https://f003.backblazeb2.com/file/${this.bucketName}/${fileName}`;
