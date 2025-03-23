@@ -16,6 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
+import { InvoicingEntity } from './trips/invoicing.entity';
 
 
 @Module({
@@ -56,7 +57,7 @@ import { join } from 'path';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [UserEntity, ReportEntity, FotoEntity, TripEntity],
+        entities: [UserEntity, ReportEntity, FotoEntity, TripEntity, InvoicingEntity],
         autoLoadEntities: true,
         synchronize: true,
       }),

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { tripDto } from './trip.dto';
 import { TripsService } from './trips.service';
 
@@ -22,7 +22,7 @@ export class TripsController {
     ) {
         return this.tripService.findAll(userId);
     }
-    
+
     @Get('/:id')
     async findById(
         @Param('id') id: number,
@@ -30,7 +30,7 @@ export class TripsController {
     ) {
         return this.tripService.findById(id, userId);
     }
-    
+
     @Delete('/:id')
     async deleteById(
         @Param('id') id: number,
@@ -38,7 +38,7 @@ export class TripsController {
     ) {
         return this.tripService.deleteById(id, userId);
     }
-    
+
     @Delete()
     async deleteByIds(
         @Body() { ids, userId }: { ids: number[], userId: string } // Pegando tudo junto em um objeto
@@ -55,4 +55,14 @@ export class TripsController {
         console.log("dadosUpdate", dadosUpdate)
         return this.tripService.updateTrip(dadosUpdate, userId);
     }
+
+    @Get('invoicing/history')
+    async getInvoicingHistory(
+        @Query('userId') userId: string,
+        @Query('mesReferente') mesReferente?: number,
+        @Query('anoReferente') anoReferente?: number,
+    ) {
+        return this.tripService.getInvoicingHistory(userId, mesReferente, anoReferente);
+    }
+
 }
