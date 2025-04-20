@@ -97,3 +97,39 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+
+# 🚀 API de Gerenciamento de Viagens
+
+API RESTful desenvolvida com **NestJS** para gerenciamento de viagens e geração de relatórios. Inclui autenticação de usuários, controle de viagens, relatórios e histórico de faturamento.
+
+---
+
+## 📦 Tecnologias Utilizadas
+
+- [NestJS](https://nestjs.com/)
+- TypeScript
+- PostgreSQL (ou outro banco relacional)
+- JWT para autenticação
+- Swagger (opcional para documentação)
+
+---
+
+## ⚙️ Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/nome-do-repo.git
+
+# Acesse a pasta
+cd nome-do-repo
+
+# Instale as dependências
+npm install
+
+# Configure o .env com suas variáveis de ambiente
+
+# Inicie o servidor
+npm run start:dev
+
