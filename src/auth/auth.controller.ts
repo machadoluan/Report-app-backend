@@ -51,10 +51,10 @@ export class AuthController {
             return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
         res.cookie('token', req.user.accessToken, {
-            httpOnly: false, // pode deixar false se você quiser acessar no frontend com JS
-            secure: true, // exige HTTPS
-            sameSite: 'Lax',
-            domain: 'app.devmchd.space' // ✅ sem https e sem porta
+            httpOnly: false,              // ou true se você for usar cookies httpOnly
+            secure: true,                 // obrigatório em produção (HTTPS)
+            sameSite: 'None',             // 👈 importante para cross-domain
+            domain: 'devmchd.space',      // ou 'app.devmchd.space' se quiser restringir mais
         });
 
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
@@ -74,10 +74,10 @@ export class AuthController {
     facebookAuthRedirect(@Req() req, @Res() res) {
 
         res.cookie('token', req.user.accessToken, {
-            httpOnly: false, // pode deixar false se você quiser acessar no frontend com JS
-            secure: true, // exige HTTPS
-            sameSite: 'Lax',
-            domain: 'app.devmchd.space' // ✅ sem https e sem porta
+            httpOnly: false,              // ou true se você for usar cookies httpOnly
+            secure: true,                 // obrigatório em produção (HTTPS)
+            sameSite: 'None',             // 👈 importante para cross-domain
+            domain: 'devmchd.space',      // ou 'app.devmchd.space' se quiser restringir mais
         });
 
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
