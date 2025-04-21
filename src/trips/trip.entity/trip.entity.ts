@@ -41,8 +41,8 @@ export class TripEntity {
     @Column({ type: 'enum', enum: TripStatus })
     status: TripStatus;
 
-    @Column()
-    descricao: string;
+    @Column({ nullable: true })
+    descricao?: string;
 
     @ManyToOne(() => UserEntity, user => user.trips)
     @JoinColumn({ name: 'user_id' })
