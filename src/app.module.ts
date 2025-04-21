@@ -38,7 +38,7 @@ import { InvoicingEntity } from './trips/invoicing.entity';
         },
         defaults: { from: '"Equipe Suporte" <suporte@example.com>' },
         template: {
-          dir: join(__dirname, 'mails'), 
+          dir: join(__dirname, '..', 'mails'), 
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
@@ -52,11 +52,11 @@ import { InvoicingEntity } from './trips/invoicing.entity';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'mysql',
-        host: configService.get<string>('DATABASE_HOST'),
-        port: configService.get<number>('DATABASE_PORT'),
-        username: configService.get<string>('DATABASE_USER'),
-        password: configService.get<string>('DATABASE_PASSWORD'),
-        database: configService.get<string>('DATABASE_NAME'),
+        host: 'localhost',
+        port: 3306,
+        username: 'reportuser',
+        password: 'Machado@Luan121107#@$%',
+        database: 'reportapp',
         entities: [UserEntity, ReportEntity, FotoEntity, TripEntity, InvoicingEntity],
         autoLoadEntities: true,
         synchronize: true,
