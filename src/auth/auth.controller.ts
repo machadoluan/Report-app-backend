@@ -1,5 +1,7 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { AuthGuard } from '@nestjs/passport';
+import { FacebookAuthCallbackGuard } from './facebook-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -32,7 +34,39 @@ export class AuthController {
     }
 
     @Post('verify-token')
-    async verifyToken(@Body('token') token: string){
+    async verifyToken(@Body('token') token: string) {
         return this.authService.verifyToken(token)
     }
+
+    @Get('google')
+    @UseGuards(AuthGuard('google'))
+    async googleAuth(@Req() req,) {
+        // Essa rota inicia o fluxo de autenticação com o Google
+    }
+
+    @Get('google/callback')
+    @UseGuards(AuthGuard('google'))
+    googleAuthRedirect(@Req() req, @Res() res) {
+        if (!req.user) {
+            return res.redirect('http://localhost:4200/login?error=cancelled');
+        }
+        return res.redirect(`http://localhost:4200?token=${req.user.accessToken}`);
+    }
+
+
+    // Rota para login com Facebook
+    @Get('facebook')
+    
+    @UseGuards(AuthGuard('facebook'))
+    async facebookAuth(@Req() req) { }
+
+    // Callback do Facebook
+    @Get('facebook/callback')
+    @UseGuards(AuthGuard('facebook'))
+    @UseGuards(FacebookAuthCallbackGuard)
+    facebookAuthRedirect(@Req() req, @Res() res) {
+    
+        return res.redirect(`http://localhost:4200?token=${req.user.accessToken}`);
+    }
+
 }

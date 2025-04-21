@@ -61,6 +61,7 @@ export class AuthService {
             const lastName = dadosRegister.lastName.trim();
             const email = dadosRegister.email.trim();
             const password = dadosRegister.password.trim();
+
             const fullName = `${firstName} ${lastName}`;
 
             // 🔒 Criptografando a senha
@@ -104,7 +105,47 @@ export class AuthService {
         }
     }
 
+    // Login redes sociais
 
+    async validateUser(profile: any): Promise<{ accessToken: string }> {
+        let user = await this.userRepository.findOne({ where: { email: profile.email } });
+
+        if (!user) {
+
+            const fullName = `${profile.given_name || profile.first_name} ${profile.family_name || profile.last_name}`;
+
+            const username = await this.generateUniqueUsername(profile.given_name || profile.first_name, profile.family_name || profile.last_name);
+
+
+            user = this.userRepository.create({
+                name: fullName,
+                email: profile.email,
+                profileImage: profile.picture,
+                username: username,
+                loginWith: profile.provider,
+            });
+
+
+            try {
+                await this.userRepository.save(user);
+                // Criar um token JWT
+                const payload = this.creatPayload(user);
+                const accessToken = this.jwtService.sign(payload);
+
+
+                return { accessToken };
+            } catch (error) {
+                console.error('Erro ao salvar usuário:', error);
+            }
+        } else {
+            console.log('Usuário já existe no banco de dados.');
+            const payload = this.creatPayload(user);
+            const accessToken = this.jwtService.sign(payload);
+
+            return { accessToken };
+        }
+
+    }
 
     async login(dadosLogin: any): Promise<{ accessToken: string }> {
         const user = await this.userRepository.findOne({ where: { email: dadosLogin.email } });
@@ -175,4 +216,9 @@ export class AuthService {
             throw new BadRequestException('Token invalida ou expirado.')
         }
     }
+
+
+
+
+
 }

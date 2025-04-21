@@ -31,4 +31,7 @@ export class UserEntity {
 
   @OneToMany(() => TripEntity, trip => trip.user)
   trips: TripEntity[]
+
+  @Column('text')
+  loginWith: string;
 }

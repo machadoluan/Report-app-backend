@@ -6,9 +6,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants/constants';
 import { AuthService } from './auth.service';
 import { ProfileImageService } from 'src/profile-image/profile-image.service';
+import { PassportModule } from '@nestjs/passport';
+import { FacebookStrategy } from './facebook.strategy';
+import { GoogleStrategy } from './google.strategy';
 
 @Module({
   imports: [
+    PassportModule.register({ defaultStrategy: 'google' }),
+
     TypeOrmModule.forFeature([UserEntity]),
     JwtModule.register({
       global: true,
@@ -16,7 +21,7 @@ import { ProfileImageService } from 'src/profile-image/profile-image.service';
       signOptions: {expiresIn: '24h'}
     })
   ],
-  providers: [AuthService, ProfileImageService],
+  providers: [AuthService, ProfileImageService, GoogleStrategy, FacebookStrategy],
   controllers: [AuthController]
 })
 export class AuthModule {}
