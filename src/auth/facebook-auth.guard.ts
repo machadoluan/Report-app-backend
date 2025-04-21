@@ -10,7 +10,7 @@ export class FacebookAuthCallbackGuard implements CanActivate {
 
     // 🚫 Se o usuário cancelou
     if (error === 'access_denied' && error_reason === 'user_denied') {
-      response.redirect('http://localhost:4200/login?error=cancelled');
+      response.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
       return false;
     }
 

@@ -48,9 +48,9 @@ export class AuthController {
     @UseGuards(AuthGuard('google'))
     googleAuthRedirect(@Req() req, @Res() res) {
         if (!req.user) {
-            return res.redirect('http://localhost:4200/login?error=cancelled');
+            return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
-        return res.redirect(`http://localhost:4200?token=${req.user.accessToken}`);
+        return res.redirect(`${process.env.URL_FRONTEND}?token=${req.user.accessToken}`);
     }
 
 
@@ -66,7 +66,7 @@ export class AuthController {
     @UseGuards(FacebookAuthCallbackGuard)
     facebookAuthRedirect(@Req() req, @Res() res) {
     
-        return res.redirect(`http://localhost:4200?token=${req.user.accessToken}`);
+        return res.redirect(`${process.env.URL_FRONTEND}?token=${req.user.accessToken}`);
     }
 
 }
