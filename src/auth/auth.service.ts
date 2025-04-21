@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { MailerService } from '@nestjs-modules/mailer';
 import { JwtService } from '@nestjs/jwt';
 import { ProfileImageService } from 'src/profile-image/profile-image.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +15,8 @@ export class AuthService {
         private readonly userRepository: Repository<UserEntity>,
         private readonly jwtService: JwtService,
         private readonly profileImageService: ProfileImageService,
-        private readonly mailerService: MailerService
+        private readonly mailerService: MailerService,
+        private readonly configService: ConfigService,
     ) { }
 
     private creatPayload(user: UserEntity) {
@@ -134,7 +136,7 @@ export class AuthService {
 
         const resetToken = this.jwtService.sign({ id: user.id }, { expiresIn: '15min' });
 
-        const resetLink = `http://localhost:4200/reset-password?token=${resetToken}`;
+        const resetLink = `${this.configService.get<string>('URL_FRONTEND')}/reset-password?token=${resetToken}`;
 
         await this.mailerService.sendMail({
             to: user.email,
