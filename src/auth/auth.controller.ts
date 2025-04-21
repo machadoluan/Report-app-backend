@@ -50,13 +50,20 @@ export class AuthController {
         if (!req.user) {
             return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
-        return res.redirect(`${process.env.URL_FRONTEND}?token=${req.user.accessToken}`);
+        res.cookie('token', req.user.accessToken, {
+            httpOnly: false, // pode deixar false se você quiser acessar no frontend com JS
+            secure: true, // exige HTTPS
+            sameSite: 'Lax',
+            domain: 'app.devmchd.space' // ✅ sem https e sem porta
+          });
+          
+        return res.redirect('http://localhost:4200');
     }
 
 
     // Rota para login com Facebook
     @Get('facebook')
-    
+
     @UseGuards(AuthGuard('facebook'))
     async facebookAuth(@Req() req) { }
 
@@ -65,7 +72,7 @@ export class AuthController {
     @UseGuards(AuthGuard('facebook'))
     @UseGuards(FacebookAuthCallbackGuard)
     facebookAuthRedirect(@Req() req, @Res() res) {
-    
+
         return res.redirect(`${process.env.URL_FRONTEND}?token=${req.user.accessToken}`);
     }
 
