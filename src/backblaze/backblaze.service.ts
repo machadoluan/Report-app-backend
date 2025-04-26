@@ -43,14 +43,14 @@ export class BackblazeService {
         }
     }
 
-    async profileImg(base64: string, userId: string, name: string): Promise<string> {
+    async profileImg(base64: string, name: string): Promise<string> {
         if (!base64) {
             throw new BadRequestException('Nenhuma foto selecionada.');
         }
 
         // Define o caminho do arquivo no formato userId/tripId/nomeDoArquivo
         const extension = base64.includes('image/png') ? 'png' : 'jpg';
-        const fileName = `photoUsers/${userId}-${name}.${extension}`;
+        const fileName = `photoUsers/${name}.${extension}`;
 
         try {
             // Garantimos que está autenticado antes do upload

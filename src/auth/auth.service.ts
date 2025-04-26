@@ -82,13 +82,15 @@ export class AuthService {
             // 🎯 Criar username único
             const username = await this.generateUniqueUsername(firstName, lastName);
 
+            const profileImg = await this.backblazeService.profileImg(gerarImage, username)
+
             // 🧩 Criar usuário
             const user = this.userRepository.create({
                 name: fullName,
                 email,
                 username,
                 password: hashedPassword,
-                profileImage: gerarImage,
+                profileImage: profileImg,
             });
 
             // 💾 Salvar no banco
@@ -123,7 +125,7 @@ export class AuthService {
             let profileImg = profile.picture
 
             if (profile.picture && !profile.picture.startsWith('http')) {
-                profileImg = await this.backblazeService.profileImg(profile.picture, user.id, username)
+                profileImg = await this.backblazeService.profileImg(profile.picture, username)
             }
 
             user = this.userRepository.create({
@@ -149,6 +151,7 @@ export class AuthService {
             }
         } else {
             console.log('Usuário já existe no banco de dados.');
+
             const payload = this.creatPayload(user);
             const accessToken = this.jwtService.sign(payload);
 
