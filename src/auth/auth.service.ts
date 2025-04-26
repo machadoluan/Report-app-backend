@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ProfileImageService } from 'src/profile-image/profile-image.service';
 import { ConfigService } from '@nestjs/config';
 import { ImageService } from 'src/auth/imageRezise.service';
+import { BackblazeService } from 'src/backblaze/backblaze.service';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,7 @@ export class AuthService {
         private readonly profileImageService: ProfileImageService,
         private readonly mailerService: MailerService,
         private readonly configService: ConfigService,
-        private readonly imgService: ImageService
+        private readonly backblazeService: BackblazeService
     ) { }
 
     private creatPayload(user: UserEntity) {
@@ -122,8 +123,8 @@ export class AuthService {
             let profileImg = profile.picture
 
             if (profile.picture && !profile.picture.startsWith('http')) {
-                profileImg = await this.imgService.resizeBase64Image(profile.picture);
-              }
+                profileImg = await this.backblazeService.profileImg(profile.picture, user.id, username)
+            }
 
             user = this.userRepository.create({
                 name: fullName,

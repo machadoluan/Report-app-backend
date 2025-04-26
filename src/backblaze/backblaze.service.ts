@@ -43,6 +43,37 @@ export class BackblazeService {
         }
     }
 
+    async profileImg(base64: string, userId: string, name: string): Promise<string> {
+        if (!base64) {
+            throw new BadRequestException('Nenhuma foto selecionada.');
+        }
+
+        // Define o caminho do arquivo no formato userId/tripId/nomeDoArquivo
+        const extension = base64.includes('image/png') ? 'png' : 'jpg';
+        const fileName = `photoUsers/${userId}-${name}.${extension}`;
+
+        try {
+            // Garantimos que está autenticado antes do upload
+            await this.authenticate();
+
+            const { uploadUrl, authorizationToken } = await this.getUploadData();
+
+            // Faz o upload do arquivo
+            const response = await this.b2.uploadFile({
+                uploadUrl,
+                uploadAuthToken: authorizationToken,
+                fileName,
+                data: Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), 'base64'),
+            });
+            // Retorna a URL pública do arquivo
+            return `https://f003.backblazeb2.com/file/${this.bucketName}/${fileName}`;
+        } catch (error) {
+            console.error('Erro ao fazer upload do arquivo:', error);
+            throw new BadRequestException('Falha ao fazer upload do arquivo.');
+        }
+    }
+
+
     async uploadFile(file: Express.Multer.File, userId: string, name: string, tripId: number, tripName: string): Promise<string> {
         if (!file) {
             throw new BadRequestException('Nenhum arquivo enviado.');
