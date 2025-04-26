@@ -17,6 +17,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
 import { InvoicingEntity } from './trips/invoicing.entity';
+import { ImageService } from './auth/imageRezise.service';
 
 
 @Module({

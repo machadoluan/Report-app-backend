@@ -15,7 +15,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     }
 
     async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback) {
-        console.log('🔍 Dados do Google:', profile); // <-- Verifica se os dados estão chegando
 
         try {
             const user = await this.authService.validateUser({

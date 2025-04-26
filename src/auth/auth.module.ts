@@ -9,6 +9,7 @@ import { ProfileImageService } from 'src/profile-image/profile-image.service';
 import { PassportModule } from '@nestjs/passport';
 import { FacebookStrategy } from './facebook.strategy';
 import { GoogleStrategy } from './google.strategy';
+import { ImageService } from './imageRezise.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { GoogleStrategy } from './google.strategy';
       signOptions: {expiresIn: '24h'}
     })
   ],
-  providers: [AuthService, ProfileImageService, GoogleStrategy, FacebookStrategy],
+  providers: [AuthService, ProfileImageService, GoogleStrategy, FacebookStrategy, ImageService],
   controllers: [AuthController]
 })
 export class AuthModule {}

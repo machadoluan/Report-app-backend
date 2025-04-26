@@ -7,6 +7,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { JwtService } from '@nestjs/jwt';
 import { ProfileImageService } from 'src/profile-image/profile-image.service';
 import { ConfigService } from '@nestjs/config';
+import { ImageService } from 'src/auth/imageRezise.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
         private readonly profileImageService: ProfileImageService,
         private readonly mailerService: MailerService,
         private readonly configService: ConfigService,
+        private readonly imgService: ImageService
     ) { }
 
     private creatPayload(user: UserEntity) {
@@ -117,14 +119,21 @@ export class AuthService {
             const username = await this.generateUniqueUsername(profile.given_name || profile.first_name, profile.family_name || profile.last_name);
 
 
+            let profileImg = profile.picture
+
+            if (profile.picture && !profile.picture.startsWith('http')) {
+                profileImg = await this.imgService.resizeBase64Image(profile.picture);
+              }
+
             user = this.userRepository.create({
                 name: fullName,
                 email: profile.email,
-                profileImage: profile.picture.startsWith('http') ? user.profileImage : null,
+                profileImage: profileImg,
                 username: username,
                 loginWith: profile.provider,
             });
 
+            console.log('User', user)
 
             try {
                 await this.userRepository.save(user);

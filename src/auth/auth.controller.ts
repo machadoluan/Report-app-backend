@@ -51,6 +51,7 @@ export class AuthController {
             return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
 
+
         const token = req.user.accessToken;
         return res.redirect(`${process.env.URL_FRONTEND}/login?token=${token}`);
     }
