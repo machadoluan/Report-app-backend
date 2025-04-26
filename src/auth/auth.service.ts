@@ -120,7 +120,7 @@ export class AuthService {
             user = this.userRepository.create({
                 name: fullName,
                 email: profile.email,
-                profileImage: profile.picture,
+                profileImage: profile.picture.startsWith('http') ? user.profileImage : null,
                 username: username,
                 loginWith: profile.provider,
             });
