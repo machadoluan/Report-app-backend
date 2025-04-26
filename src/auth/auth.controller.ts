@@ -52,9 +52,6 @@ export class AuthController {
         }
         res.cookie('token', req.user.accessToken, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None',
-            domain: '.devmchd.space',
         });
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
     }
@@ -65,9 +62,6 @@ export class AuthController {
     facebookAuthRedirect(@Req() req, @Res() res) {
         res.cookie('token', req.user.accessToken, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None',
-            domain: '.devmchd.space',
         });
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
     }
