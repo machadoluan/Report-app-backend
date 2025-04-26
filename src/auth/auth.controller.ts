@@ -50,20 +50,41 @@ export class AuthController {
         if (!req.user) {
             return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
+
         res.cookie('token', req.user.accessToken, {
-            httpOnly: true,
+            httpOnly: false,
+            secure: process.env.COOKIE_SECURE === 'true',
+            sameSite: process.env.COOKIE_SAMESITE as 'lax' | 'none',
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            path: '/',
         });
+
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
     }
 
+
+    // Rota para login com Facebook
+    @Get('facebook')
+
+    @UseGuards(AuthGuard('facebook'))
+    async facebookAuth(@Req() req) { }
+
+    // Callback do Facebook
     @Get('facebook/callback')
     @UseGuards(AuthGuard('facebook'))
     @UseGuards(FacebookAuthCallbackGuard)
     facebookAuthRedirect(@Req() req, @Res() res) {
+
         res.cookie('token', req.user.accessToken, {
-            httpOnly: true,
+            httpOnly: false,
+            secure: process.env.COOKIE_SECURE === 'true',
+            sameSite: process.env.COOKIE_SAMESITE as 'lax' | 'none',
+            domain: process.env.COOKIE_DOMAIN || undefined,
+            path: '/',
         });
+
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
+
     }
 
 

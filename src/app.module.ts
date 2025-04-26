@@ -55,7 +55,7 @@ import { InvoicingEntity } from './trips/invoicing.entity';
         host: configService.get<string>('DATABASE_HOST'),
         port: configService.get<number>('DATABASE_PORT'),
         username: configService.get<string>('DATABASE_USER'),
-        password: configService.get<string>('DATABASE_PASSWORD'),
+        password: 'Machado@Luan121107#',
         database: configService.get<string>('DATABASE_NAME'),
         entities: [UserEntity, ReportEntity, FotoEntity, TripEntity, InvoicingEntity],
         autoLoadEntities: true,
