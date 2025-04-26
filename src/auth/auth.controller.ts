@@ -51,37 +51,26 @@ export class AuthController {
             return res.redirect(`${process.env.URL_FRONTEND}/login?error=cancelled`);
         }
         res.cookie('token', req.user.accessToken, {
-            httpOnly: false,              // ou true se você for usar cookies httpOnly
-            secure: true,                 // obrigatório em produção (HTTPS)
-            sameSite: 'None',             // 👈 importante para cross-domain
-            domain: 'devmchd.space',      // ou 'app.devmchd.space' se quiser restringir mais
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None',
+            domain: '.devmchd.space',
         });
-
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
     }
 
-
-    // Rota para login com Facebook
-    @Get('facebook')
-
-    @UseGuards(AuthGuard('facebook'))
-    async facebookAuth(@Req() req) { }
-
-    // Callback do Facebook
     @Get('facebook/callback')
     @UseGuards(AuthGuard('facebook'))
     @UseGuards(FacebookAuthCallbackGuard)
     facebookAuthRedirect(@Req() req, @Res() res) {
-
         res.cookie('token', req.user.accessToken, {
-            httpOnly: false,              // ou true se você for usar cookies httpOnly
-            secure: true,                 // obrigatório em produção (HTTPS)
-            sameSite: 'None',             // 👈 importante para cross-domain
-            domain: 'devmchd.space',      // ou 'app.devmchd.space' se quiser restringir mais
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None',
+            domain: '.devmchd.space',
         });
-
         return res.redirect(`${process.env.URL_FRONTEND}/dashboard`);
-
     }
+
 
 }

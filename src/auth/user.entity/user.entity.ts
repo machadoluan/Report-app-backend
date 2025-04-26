@@ -8,7 +8,7 @@ export class UserEntity {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @Column()
+  @Column({nullable: true})
   name: string;
 
   @Column({ unique: true })
@@ -17,7 +17,7 @@ export class UserEntity {
   @Column({ unique: true })
   username: string;
 
-  @Column()
+  @Column({nullable: true})
   password: string;
 
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
@@ -32,6 +32,6 @@ export class UserEntity {
   @OneToMany(() => TripEntity, trip => trip.user)
   trips: TripEntity[]
 
-  @Column('text')
+  @Column({nullable: true})
   loginWith: string;
 }
