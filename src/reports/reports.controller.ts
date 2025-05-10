@@ -78,14 +78,15 @@ export class ReportsController {
         return this.reportService.deleteByIds(ids, userId);
     }
 
-    @Put()
+    @Put(':viagemId')
     async updateReport(
+        @Param('viagemId') viagemId: number,
         @Body('updateData') dadosUpdate: ReportDto,
         @Body('userId') userId: string,
     ) {
+        console.log(viagemId)
         console.log(dadosUpdate);
         console.log(userId);
-        return this.reportService.updateReport(dadosUpdate, userId);
+        return this.reportService.updateReport(viagemId, dadosUpdate, userId);
     }
-
 }

@@ -292,37 +292,58 @@ export class ReportsService {
         return { success: `Relatórios ${reportIds.join(', ')} deletados com sucesso!` };
     }
 
-    async updateReport(dadosUpdate: ReportDto, userId: string) {
+    async updateReport(viagemId: any, dadosUpdate: ReportDto, userId: string) {
+        if (viagemId === 'null' || viagemId === undefined) {
+            viagemId = null;
+          }
+
+          
         if (!dadosUpdate.id) {
             throw new BadRequestException('O campo ID é obrigatório');
         }
-
+    
         const report = await this.reportRepository.findOne({
-            where: { id: dadosUpdate.id, user: { id: userId } }, // verifica se o relatório pertence ao usuário
+            where: { id: dadosUpdate.id, user: { id: userId } },
         });
-
+    
         if (!report) {
             throw new BadRequestException('Relatório não encontrado ou acesso negado!');
         }
-
-
-        // Verificação de data
+    
         if (dadosUpdate.data) {
             const [dia, mes, ano] = dadosUpdate.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
             const data = new Date(dataFormatada);
-
+    
             if (isNaN(data.getTime())) {
                 throw new BadRequestException('A data fornecida é inválida!');
             }
-
+    
             dadosUpdate.data = dataFormatada;
         }
 
-        await this.reportRepository.update({ id: dadosUpdate.id }, dadosUpdate);
-
+        let viagem_nome = 'Sem Viagem';
+        if (viagemId !== null) {
+            const trip = await this.tripRepository.findOne({ where: { id: viagemId } });
+            if (!trip) {
+                throw new BadRequestException('Viagem não encontrada!');
+            }
+            viagem_nome = `${trip.origem} → ${trip.destino}`;
+        }
+    
+        // 🔄 Atualiza o relatório
+        await this.reportRepository.update(
+            { id: dadosUpdate.id },
+            {
+                ...dadosUpdate,
+                viagem_id: viagemId,
+                viagem_nome,
+            }
+        );
+    
         return { success: 'Relatório atualizado com sucesso!' };
     }
+    
 
     async deleteReportPhoto(fileName: string): Promise<void> {
         try {
