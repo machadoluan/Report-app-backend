@@ -76,7 +76,6 @@ export class ReportsService {
             throw new BadRequestException('Preencha todos os campos obrigatórios e envie pelo menos uma foto!');
         }
 
-
         if (dadoReport.data) {
             const [dia, mes, ano] = dadoReport.data.split('/');
             const dataFormatada = `${ano}-${mes}-${dia}`;
@@ -90,27 +89,61 @@ export class ReportsService {
         }
 
         const trip = await this.tripRepository.findOne({ where: { id: viagemId } });
-
-        const user = await this.userRepository.findOne({ where: { id: userId } })
-
-        if (!trip) {
-            throw new NotFoundException(`Viagem com ID ${viagemId} não encontrada.`);
-        }
-
-        const viagemName = `${trip.origem} → ${trip.destino}`;
-
-        // 🔴 Tenta fazer o upload das fotos antes de salvar o relatório
+        const user = await this.userRepository.findOne({ where: { id: userId } });
         let urls: string[] = [];
+
+        // 🔴 Tenta fazer upload das fotos antes de salvar o relatório
         try {
             for (const file of files) {
-                const url = await this.backblazeService.uploadFile(file, userId, user.username, trip.id, viagemName);
+                const url = await this.backblazeService.uploadFile(
+                    file,
+                    userId,
+                    user.username,
+                    trip?.id || null,
+                    trip ? `${trip.origem} → ${trip.destino}` : 'Sem Viagem'
+                );
                 urls.push(url);
             }
         } catch (error) {
             throw new BadRequestException('Erro ao fazer upload da foto. Tente novamente.');
         }
 
-        // 🔵 Agora salva o registro no banco, pois o upload foi bem-sucedido
+        if (!trip) {
+            const reportFinal = this.reportRepository.create({
+                ...dadoReport,
+                viagem_id: null,
+                viagem_nome: 'Sem Viagem',
+                user: { id: userId }
+            });
+
+            const saveReport = await this.reportRepository.save(reportFinal);
+
+            for (const url of urls) {
+                const foto = this.fotoRepository.create({
+                    registroId: saveReport.id,
+                    url
+                });
+                await this.fotoRepository.save(foto);
+            }
+
+            saveReport.data = this.formatDate(saveReport.data)
+            saveReport.hora = this.formatarHora(saveReport.hora)
+
+            const foto = await this.fotoRepository.find()
+
+            const reportFormatado = {
+                ...saveReport,
+                tipo_name: this.formatarTipoName(saveReport.tipo),
+                foto: foto.filter(foto => foto.registroId === saveReport.id)
+                    .map(foto => foto.url)
+            }
+
+            return { success: 'Registro cadastrado com sucesso sem vínculo de viagem!', report: reportFormatado };
+        }
+
+        // 🔵 Se tem viagem, segue o fluxo padrão
+        const viagemName = `${trip.origem} → ${trip.destino}`;
+
         const reportFinal = this.reportRepository.create({
             ...dadoReport,
             viagem_id: viagemId,
@@ -120,7 +153,6 @@ export class ReportsService {
 
         const saveReport = await this.reportRepository.save(reportFinal);
 
-        // 🔵 Salva as fotos associadas ao registro
         for (const url of urls) {
             const foto = this.fotoRepository.create({
                 registroId: saveReport.id,
@@ -129,8 +161,21 @@ export class ReportsService {
             await this.fotoRepository.save(foto);
         }
 
-        return { success: 'Registro cadastrado com sucesso!' };
+        saveReport.data = this.formatDate(saveReport.data)
+        saveReport.hora = this.formatarHora(saveReport.hora)
+
+        const foto = await this.fotoRepository.find()
+
+        const reportFormatado = {
+            ...saveReport,
+            tipo_name: this.formatarTipoName(saveReport.tipo),
+            foto: foto.filter(foto => foto.registroId === saveReport.id)
+                .map(foto => foto.url)
+        }
+
+        return { success: 'Registro cadastrado com sucesso!', report: reportFormatado };
     }
+
 
 
 
@@ -191,7 +236,7 @@ export class ReportsService {
 
 
     async deleteById(reportId: number, userId: string) {
-        if (!reportId) {
+        if (!reportId || !userId) {
             throw new BadRequestException('Preencha todos os campos obrigatórios!');
         }
 
@@ -212,7 +257,7 @@ export class ReportsService {
             await this.fotoRepository.delete(img);
         }
 
-        await this.reportRepository.delete(report);
+        await this.reportRepository.delete(report.id);
 
         return { success: `Registro de ${report.tipo} deletado.` };
     }

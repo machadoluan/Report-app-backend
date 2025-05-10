@@ -8,7 +8,7 @@ export class ReportEntity {
     @PrimaryGeneratedColumn()
     id: number
 
-    @Column({ nullable: false })
+    @Column({ nullable: true })
     viagem_id: number;
 
     @Column({ nullable: false })
